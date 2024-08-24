@@ -1,18 +1,39 @@
-export const state = () => ({})
+export const state = () => ({
+  isLoading: false,
+})
 
 export const getters = {}
 
-export const mutations = {}
+export const mutations = {
+  LOADING(state, isLoading) {
+    state.isLoading = isLoading
+  }
+}
+
+const LOCAL = false
+
+const readURL = (point) => {
+  const mode = localStorage.getItem('ENV') || ''
+  switch (point) {
+    case 'account':
+      if (LOCAL) {
+        return 'http://127.0.0.1:8000'
+      }
+      return `https://api.thachlonghai.co/micro-account-${mode}`
+    case 'product':
+      if (LOCAL) {
+        return 'http://127.0.0.1:8007'
+      }
+      return `https://api.thachlonghai.co/micro-product-${mode}`
+    default:
+      return ''
+  }
+}
 
 export const actions = {
   async onLogin(_, payload) {
-    const mode = localStorage.getItem('ENV') || ''
-
     const result = await this.$axios
-      .post(
-        `https://api.thachlonghai.co/micro-account-${mode}/account/api/login`,
-        payload
-      )
+      .post(`${readURL('account')}/account/api/login`, payload)
       .then((res) => {
         const dataResponse = res.data.data
         const dataUser = dataResponse.user
@@ -52,18 +73,26 @@ export const actions = {
   },
 
   async productList() {
-    const mode = localStorage.getItem('ENV') || ''
-
     const result = await this.$axios
-      .get(
-        `https://api.thachlonghai.co/micro-product-${mode}/v2/product/api/tool-products`
-      )
+      .get(`${readURL('product')}/v2/product/api/tool-products`)
       .then((res) => {
         const results = res.data.data
         return { isOK: true, results }
       })
       .catch(() => {
         return { isOK: false, results: [] }
+      })
+    return result
+  },
+
+  async updateProduct(_, payload) {
+    const result = await this.$axios
+      .post(`${readURL('product')}/v2/product/api/tool-products`, payload)
+      .then(() => {
+        return { isOK: true }
+      })
+      .catch(() => {
+        return { isOK: false }
       })
     return result
   },
