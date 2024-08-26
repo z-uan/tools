@@ -104,8 +104,12 @@ export default {
       this.products = this.cloneDeep(this.productsClone)
     },
     cloneDeep(data) {
-      const newData = JSON.stringify(data)
-      return JSON.parse(newData)
+      try {
+        const newData = JSON.stringify(data)
+        return JSON.parse(newData)
+      } catch (error) {
+        return null
+      }
     },
     async onSubmit() {
       this.$store.commit('LOADING', true)

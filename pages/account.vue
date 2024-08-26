@@ -81,8 +81,12 @@ export default {
   },
   methods: {
     cloneDeep(data) {
-      const newData = JSON.stringify(data)
-      return JSON.parse(newData)
+      try {
+        const newData = JSON.stringify(data)
+        return JSON.parse(newData)
+      } catch (error) {
+        return null
+      }
     },
     findAccount() {
       const nextLocation = this.keyword
@@ -106,6 +110,7 @@ export default {
     },
     async onLoadAccount() {
       this.accountFinded = []
+      this.activeSelected = []
       this.accountFindedClone = []
 
       if (this.keyword.trim()) {
@@ -118,22 +123,34 @@ export default {
         }
         const result = await this.$store.dispatch('searchAccount', payload)
         if (result.isOK) {
-          this.accountFinded = this.cloneDeep(result.results).map((e) => {
-            if (Object.hasOwn(e, 'childrens') && Array.isArray(e?.childrens)) {
-              e.childrens.sort(
-                (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
-              )
-            }
-            return e
-          })
-          this.accountFindedClone = this.cloneDeep(result.results).map((e) => {
-            if (Object.hasOwn(e, 'childrens') && Array.isArray(e?.childrens)) {
-              e.childrens.sort(
-                (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
-              )
-            }
-            return e
-          })
+          this.accountFinded = this.cloneDeep(result.results)
+            .map((e) => {
+              if (
+                Object.hasOwn(e, 'childrens') &&
+                Array.isArray(e?.childrens)
+              ) {
+                e.childrens.sort(
+                  (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
+                )
+              }
+              e.label = `(${e?.id}) ${e?.username} - ${e?.fullname}`
+              return e
+            })
+            .sort((a, b) => a?.label?.length - b?.label?.length)
+          this.accountFindedClone = this.cloneDeep(result.results)
+            .map((e) => {
+              if (
+                Object.hasOwn(e, 'childrens') &&
+                Array.isArray(e?.childrens)
+              ) {
+                e.childrens.sort(
+                  (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
+                )
+              }
+              e.label = `(${e?.id}) ${e?.username} - ${e?.fullname}`
+              return e
+            })
+            .sort((a, b) => a?.label?.length - b?.label?.length)
         } else {
           this.accountFinded = []
           this.accountFindedClone = []
@@ -299,7 +316,7 @@ export default {
               (e) => !e?.is_active
             )"
             :key="index"
-            :label="`(${user?.id}) ${user?.system_key} - ${user?.username} - ${user?.fullname}`"
+            :label="user?.label"
             :icon="`pi ${
               activeSelected.map((e) => e?.id).includes(user?.id)
                 ? 'pi-check'
@@ -328,7 +345,7 @@ export default {
               (e) => e?.is_active
             )"
             :key="index"
-            :label="`(${user?.id}) ${user?.system_key} - ${user?.username} - ${user?.fullname}`"
+            :label="user?.label"
             icon="pi pi-user"
             style="cursor: pointer"
             :class="{
@@ -353,17 +370,17 @@ export default {
         <div style="text-align: left">
           <h3>
             {{
-              `(${accountSelected?.id}) ${accountSelected?.system_key} - ${accountSelected?.username} - ${accountSelected?.fullname}`
+              `(${accountSelected?.id}) ${accountSelected?.username} - ${accountSelected?.fullname}`
             }}
           </h3>
         </div>
 
-        <TabView style="margin-top: 1em">
+        <TabView style="margin-top: 1em; padding: 0">
           <TabPanel
             v-if="selectedSystem?.system_key === 'NPP'"
             header="Childrens"
           >
-            <PButton style="width: 100%; margin-bottom: 1em" label="SAVE" />
+            <!-- <PButton style="width: 100%; margin-bottom: 1em" label="SAVE" /> -->
 
             <DataTable
               :value="accountSelected?.childrens || []"
@@ -371,6 +388,8 @@ export default {
               :rows="10"
               responsive-layout="scroll"
               :rows-per-page-options="[10, 20, 50]"
+              show-gridlines
+              class="p-datatable-sm"
             >
               <Column field="account_id" header="Account Id"></Column>
               <Column field="fullname" header="Fullname"></Column>
@@ -402,6 +421,9 @@ export default {
 }
 .account-page .p-sidebar-right {
   width: 50vw;
+}
+.account-page .p-tabview-panels {
+  padding: 1em 0 !important;
 }
 .account-page .p-sidebar-content {
   height: 100% !important;

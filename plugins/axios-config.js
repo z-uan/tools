@@ -13,12 +13,21 @@ export default function ({ $axios, store, app }) {
 
   $axios.interceptors.response.use(
     (response) => {
+      if (response?.data?.code === 'token_not_valid') {
+        return store.dispatch('onLogout')
+      }
       return response
     },
     function (error) {
       const originalRequest = error.config
-      if (!app.$config.LOCAL && (error.response.status === 403 || error.response.status === 401) && !originalRequest._retry) {
-        return store.dispatch('auth/logout')
+      if (
+        !app.$config.LOCAL &&
+        (error.response.status === 403 ||
+          error.response.status === 401 ||
+          error.response?.code === 'token_not_valid') &&
+        !originalRequest._retry
+      ) {
+        return store.dispatch('onLogout')
       }
       return Promise.reject(error)
     }
