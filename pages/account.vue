@@ -8,6 +8,7 @@ import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import ConfirmDialog from 'primevue/confirmdialog'
 
 export default {
   name: 'AccountPage',
@@ -21,6 +22,7 @@ export default {
     Dropdown,
     DataTable,
     Column,
+    ConfirmDialog,
   },
   data() {
     return {
@@ -116,8 +118,18 @@ export default {
         }
         const result = await this.$store.dispatch('searchAccount', payload)
         if (result.isOK) {
-          this.accountFinded = this.cloneDeep(result.results)
-          this.accountFindedClone = this.cloneDeep(result.results)
+          this.accountFinded = this.cloneDeep(result.results).map((e) => {
+            e.childrens.sort(
+              (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
+            )
+            return e
+          })
+          this.accountFindedClone = this.cloneDeep(result.results).map((e) => {
+            e.childrens.sort(
+              (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
+            )
+            return e
+          })
         } else {
           this.accountFinded = []
           this.accountFindedClone = []
@@ -197,6 +209,28 @@ export default {
       })
       return newDate
     },
+    clearAllTokens() {
+      this.$confirm.require({
+        message: 'Are you sure you want to clear all token?',
+        header: 'Confirmation',
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => {
+          this.onUpdateAccount('delete_token')
+        },
+        reject: () => {},
+      })
+    },
+    activeAccountSelected() {
+      this.$confirm.require({
+        message: 'Are you sure you want to active account selected?',
+        header: 'Confirmation',
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => {
+          this.onUpdateAccount('active_account')
+        },
+        reject: () => {},
+      })
+    },
   },
 }
 </script>
@@ -222,7 +256,7 @@ export default {
         type="submit"
         class="p-button-icon"
         icon="pi pi-search"
-        label="Find Acconnt"
+        label="Find Account"
       />
       <PButton
         v-if="$route.query?.q"
@@ -237,14 +271,6 @@ export default {
       Kết quả cho từ khóa: {{ $route.query?.q }}
     </h6>
 
-    <PButton
-      v-if="activeSelected.length > 0"
-      style="margin-bottom: 1em"
-      @click="onUpdateAccount('active_account')"
-    >
-      <h6>Active {{ activeSelected.length }} selected</h6>
-    </PButton>
-
     <TabView
       v-if="$route.query?.q"
       :active-index="
@@ -252,6 +278,14 @@ export default {
       "
     >
       <TabPanel header="Deactive Account">
+        <PButton
+          v-if="activeSelected.length > 0"
+          style="margin-bottom: 1em"
+          @click="activeAccountSelected"
+        >
+          <h6>Active {{ activeSelected.length }} selected</h6>
+        </PButton>
+
         <div
           v-if="[...accountFinded].filter((e) => !e?.is_active).length > 0"
           style="display: flex; gap: 1em; flex-wrap: wrap"
@@ -321,13 +355,6 @@ export default {
         </div>
 
         <TabView style="margin-top: 1em">
-          <TabPanel header="Token">
-            <PButton
-              style="width: 100%; margin-bottom: 1em"
-              label="CLEAR ALL"
-              @click="onUpdateAccount('delete_token')"
-            />
-          </TabPanel>
           <TabPanel
             v-if="selectedSystem?.system_key === 'NPP'"
             header="Childrens"
@@ -347,12 +374,21 @@ export default {
               <Column field="status" header="Status"></Column>
             </DataTable>
           </TabPanel>
-          <TabPanel header="Locates">
-            <PButton style="width: 100%" label="SAVE" />
+          <TabPanel header="Sign out account">
+            <PButton
+              style="width: 100%; margin-bottom: 1em"
+              label="SIGN OUT"
+              @click="clearAllTokens"
+            />
           </TabPanel>
+          <!-- <TabPanel header="Locates">
+            <PButton style="width: 100%" label="SAVE" />
+          </TabPanel> -->
         </TabView>
       </div>
     </Sidebar>
+
+    <ConfirmDialog />
   </div>
 </template>
 
