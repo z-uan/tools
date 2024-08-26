@@ -119,15 +119,19 @@ export default {
         const result = await this.$store.dispatch('searchAccount', payload)
         if (result.isOK) {
           this.accountFinded = this.cloneDeep(result.results).map((e) => {
-            e.childrens.sort(
-              (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
-            )
+            if (Object.hasOwn(e, 'childrens') && Array.isArray(e?.childrens)) {
+              e.childrens.sort(
+                (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
+              )
+            }
             return e
           })
           this.accountFindedClone = this.cloneDeep(result.results).map((e) => {
-            e.childrens.sort(
-              (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
-            )
+            if (Object.hasOwn(e, 'childrens') && Array.isArray(e?.childrens)) {
+              e.childrens.sort(
+                (a, b) => Number(b?.status || 0) - Number(a?.status || 0)
+              )
+            }
             return e
           })
         } else {
