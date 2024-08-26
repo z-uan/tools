@@ -46,10 +46,10 @@ export default {
       }
     },
     onSelectMode() {
-      localStorage.removeItem('mode')
+      localStorage.removeItem('ENV')
 
       if (this.selectedMode?.mode) {
-        localStorage.setItem('mode', this.selectedMode?.mode)
+        localStorage.setItem('ENV', this.selectedMode?.mode)
       }
     },
   },
