@@ -1,6 +1,175 @@
+<script>
+import Chip from 'primevue/chip'
+import Button from 'primevue/button'
+import TabView from 'primevue/tabview'
+import Sidebar from 'primevue/sidebar'
+import TabPanel from 'primevue/tabpanel'
+import Dropdown from 'primevue/dropdown'
+import InputText from 'primevue/inputtext'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+
+export default {
+  name: 'AccountPage',
+  components: {
+    TabView,
+    TabPanel,
+    InputText,
+    PButton: Button,
+    Chip,
+    Sidebar,
+    Dropdown,
+    DataTable,
+    Column,
+  },
+  data() {
+    return {
+      keyword: '',
+      visibleRight: false,
+      accountSelected: null,
+      selectedSystem: null,
+      accountFinded: [],
+      accountFindedClone: [],
+      systems: [
+        {
+          system_key: 'AD',
+        },
+        {
+          system_key: 'NPP',
+        },
+        {
+          system_key: 'KT',
+        },
+        {
+          system_key: 'NVTT',
+        },
+        {
+          system_key: 'CHTH',
+        },
+        {
+          system_key: 'KH',
+        },
+        {
+          system_key: 'CTV',
+        },
+      ],
+      activeSelected: [],
+    }
+  },
+  watch: {
+    '$route.query': {
+      handler({ q, system_key: systemKey }) {
+        if (q) {
+          this.keyword = q
+          if (systemKey) {
+            this.selectedSystem = {
+              system_key: systemKey,
+            }
+          }
+          this.onLoadAccount()
+        }
+      },
+      immediate: true,
+    },
+    visibleRight(visibleRight) {
+      if (!visibleRight) {
+        this.accountSelected = null
+      }
+    },
+  },
+  methods: {
+    cloneDeep(data) {
+      const newData = JSON.stringify(data)
+      return JSON.parse(newData)
+    },
+    findAccount() {
+      const nextLocation = this.keyword
+        ? `/account?q=${this.keyword}&system_key=${
+            this.selectedSystem?.system_key || ''
+          }`
+        : '/account'
+      if (this.$route.fullPath !== nextLocation) {
+        const payload = {
+          q: this.keyword,
+        }
+        if (this.selectedSystem?.system_key) {
+          payload.system_key = this.selectedSystem?.system_key
+        }
+
+        this.$router.replace({
+          path: '/account',
+          query: this.keyword ? payload : {},
+        })
+      }
+    },
+    async onLoadAccount() {
+      this.accountFinded = []
+      this.accountFindedClone = []
+
+      if (this.keyword.trim()) {
+        this.$store.commit('LOADING', true)
+        const payload = {
+          q: this.keyword,
+        }
+        if (this.selectedSystem?.system_key) {
+          payload.system_key = this.selectedSystem?.system_key
+        }
+        const result = await this.$store.dispatch('searchAccount', payload)
+        if (result.isOK) {
+          this.accountFinded = this.cloneDeep(result.results)
+          this.accountFindedClone = this.cloneDeep(result.results)
+        } else {
+          this.accountFinded = []
+          this.accountFindedClone = []
+        }
+        this.$store.commit('LOADING', false)
+      }
+    },
+    onChangeSystem() {
+      if (this.selectedSystem?.system_key) {
+        this.onLoadAccount()
+      }
+    },
+    onActiveSelected(user) {
+      const index = this.activeSelected.findIndex((e) => e?.id === user?.id)
+      if (index === -1) {
+        this.activeSelected.push(user)
+      } else {
+        this.activeSelected.splice(index, 1)
+      }
+    },
+    onSelectedAccount(user) {
+      this.accountSelected = user
+      this.visibleRight = true
+    },
+
+    formatDate(datetime) {
+      if (!datetime) return ''
+      const date = new Date(datetime)
+      const newDate = date.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        minute: '2-digit',
+        hour: '2-digit',
+      })
+      return newDate
+    },
+  },
+}
+</script>
+
 <template>
   <div class="account-page">
     <form @submit.prevent="findAccount">
+      <Dropdown
+        v-model="selectedSystem"
+        :options="systems"
+        option-label="system_key"
+        placeholder="Select a system"
+        style="width: 200px"
+        @input="onChangeSystem"
+      />
       <InputText
         v-model="keyword"
         type="text"
@@ -13,18 +182,30 @@
         icon="pi pi-search"
         label="Find Acconnt"
       />
+      <PButton
+        v-if="$route.query?.q"
+        class="p-button-icon p-button-secondary"
+        icon="pi pi-replay"
+        label="Reload"
+        @click="onLoadAccount"
+      />
     </form>
 
     <h6 v-if="$route.query?.q" style="margin: 1.5em 0 1em 0">
       Kết quả cho từ khóa: {{ $route.query?.q }}
     </h6>
 
-    <TabView v-if="$route.query?.q">
-      <TabPanel header="Deactive Account">
-        <PButton v-if="activeSelected.length > 0" style="margin-bottom: 1em">
-          <h6>Active {{ activeSelected.length }} selected</h6>
-        </PButton>
+    <PButton v-if="activeSelected.length > 0" style="margin-bottom: 1em">
+      <h6>Active {{ activeSelected.length }} selected</h6>
+    </PButton>
 
+    <TabView
+      v-if="$route.query?.q"
+      :active-index="
+        [...accountFinded].filter((e) => !e?.is_active).length > 0 ? 0 : 1
+      "
+    >
+      <TabPanel header="Deactive Account">
         <div
           v-if="[...accountFinded].filter((e) => !e?.is_active).length > 0"
           style="display: flex; gap: 1em; flex-wrap: wrap"
@@ -44,7 +225,7 @@
             :class="{
               error: !user.is_active,
               primary: user.is_active,
-              selected: activeSelected.map((e) => e?.id).includes(user?.id)
+              selected: activeSelected.map((e) => e?.id).includes(user?.id),
             }"
             @click.native="onActiveSelected(user)"
           />
@@ -70,6 +251,7 @@
               error: !user.is_active,
               primary: user.is_active,
             }"
+            @click.native="onSelectedAccount(user)"
           />
         </div>
         <div v-else>
@@ -77,107 +259,84 @@
         </div>
       </TabPanel>
     </TabView>
+
+    <Sidebar
+      :visible.sync="visibleRight"
+      position="right"
+      :show-close-icon="false"
+    >
+      <div style="width: 100%; height: 100%">
+        <div style="text-align: left">
+          <h3>
+            {{
+              `(${accountSelected?.id}) ${accountSelected?.system_key} - ${accountSelected?.username} - ${accountSelected?.fullname}`
+            }}
+          </h3>
+        </div>
+
+        <TabView style="margin-top: 1em">
+          <TabPanel header="Token">
+            <PButton
+              style="width: 100%; margin-bottom: 1em"
+              label="CLEAR ALL"
+            />
+            <DataTable
+              :value="accountSelected?.tokens || []"
+              :paginator="true"
+              :rows="10"
+              responsive-layout="scroll"
+              :rows-per-page-options="[10, 20, 50]"
+            >
+              <Column field="login_time" header="Login Time">
+                <template #body="slotProps">
+                  <div style="min-width: max-content">
+                    {{ formatDate(slotProps.data[slotProps.column.field]) }}
+                  </div>
+                </template>
+              </Column>
+              <Column field="token" header="Token"></Column>
+            </DataTable>
+          </TabPanel>
+          <TabPanel
+            v-if="selectedSystem?.system_key === 'NPP'"
+            header="Childrens"
+          >
+            <PButton style="width: 100%; margin-bottom: 1em" label="SAVE" />
+
+            <DataTable
+              :value="accountSelected?.childrens || []"
+              :paginator="true"
+              :rows="10"
+              responsive-layout="scroll"
+              :rows-per-page-options="[10, 20, 50]"
+            >
+              <Column field="account_id" header="Account Id"></Column>
+              <Column field="fullname" header="Fullname"></Column>
+              <Column field="system_key" header="System Key"></Column>
+              <Column field="status" header="Status"></Column>
+            </DataTable>
+          </TabPanel>
+          <TabPanel header="Locates">
+            <PButton style="width: 100%" label="SAVE" />
+          </TabPanel>
+        </TabView>
+      </div>
+    </Sidebar>
   </div>
 </template>
 
-<script>
-import Chip from 'primevue/chip'
-import Button from 'primevue/button'
-import TabView from 'primevue/tabview'
-import TabPanel from 'primevue/tabpanel'
-import InputText from 'primevue/inputtext'
-
-export default {
-  name: 'AccountPage',
-  components: { TabView, TabPanel, InputText, PButton: Button, Chip },
-  data() {
-    return {
-      keyword: '',
-      accountFinded: [
-        {
-          id: 1,
-          fullname: 'Kiều Văn Chương',
-          username: '0982934000',
-          system_key: 'NPP',
-          is_active: false,
-        },
-        {
-          id: 2,
-          fullname: 'Kiều Văn Chương 1',
-          username: '0982934001',
-          system_key: 'AD',
-          is_active: false,
-        },
-        {
-          id: 3,
-          fullname: 'Kiều Văn Chương 2',
-          username: '0982934002',
-          system_key: 'KT',
-          is_active: false,
-        },
-        {
-          id: 4,
-          fullname: 'Kiều Văn Chương 3',
-          username: '0982934004',
-          system_key: 'NVTT',
-          is_active: true,
-        },
-        {
-          id: 5,
-          fullname: 'Kiều Văn Chương 4',
-          username: '0982934005',
-          system_key: 'KH',
-          is_active: true,
-        },
-      ],
-      activeSelected: [],
-    }
-  },
-  watch: {
-    '$route.query': {
-      handler({ q }) {
-        if (q) {
-          this.keyword = q
-          this.onLoadAccount()
-        }
-      },
-      immediate: true,
-    },
-  },
-  methods: {
-    findAccount() {
-      const nextLocation = this.keyword
-        ? `/account?q=${this.keyword}`
-        : '/account'
-      if (this.$route.fullPath !== nextLocation) {
-        this.$router.replace({
-          path: '/account',
-          query: this.keyword
-            ? {
-                q: this.keyword,
-              }
-            : {},
-        })
-      }
-    },
-    onLoadAccount() {
-      console.log(this.keyword)
-    },
-    onActiveSelected(user) {
-      const index = this.activeSelected.findIndex((e) => e?.id === user?.id)
-      if (index === -1) {
-        this.activeSelected.push(user)
-      } else {
-        this.activeSelected.splice(index, 1)
-      }
-    },
-  },
-}
-</script>
-
 <style>
-.account-page * {
+.account-page *:not(h3) {
   font-size: 0.875rem !important;
+}
+.account-page .p-sidebar-right {
+  width: 50vw;
+}
+.account-page .p-sidebar-content {
+  height: 100% !important;
+}
+.account-page .p-sidebar .p-sidebar-header {
+  padding-top: 0 !important;
 }
 .account-page
   .p-tabview

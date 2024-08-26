@@ -7,7 +7,7 @@ export const getters = {}
 export const mutations = {
   LOADING(state, isLoading) {
     state.isLoading = isLoading
-  }
+  },
 }
 
 const LOCAL = false
@@ -93,6 +93,21 @@ export const actions = {
       })
       .catch(() => {
         return { isOK: false }
+      })
+    return result
+  },
+
+  async searchAccount(_, payload) {
+    const result = await this.$axios
+      .get(`${readURL('account')}/account/api/tool_account`, {
+        params: payload,
+      })
+      .then((res) => {
+        const results = res.data.data
+        return { isOK: true, results }
+      })
+      .catch(() => {
+        return { isOK: false, results: [] }
       })
     return result
   },

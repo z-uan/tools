@@ -21,21 +21,27 @@ export default {
           label: 'Users',
           icon: 'pi pi-fw pi-user',
           command: () => {
-            this.$router.push('/account')
+            if (!this.$route.fullPath.includes('account')) {
+              this.$router.push('/account')
+            }
           },
         },
         {
           label: 'Products',
           icon: 'pi pi-fw pi-box',
           command: () => {
-            this.$router.push('/product')
+            if (!this.$route.fullPath.includes('product')) {
+              this.$router.push('/product')
+            }
           },
         },
         {
           label: 'Settings',
           icon: 'pi pi-fw pi-cog',
           command: () => {
-            this.$router.push('/settings')
+            if (!this.$route.fullPath.includes('settings')) {
+              this.$router.push('/settings')
+            }
           },
         },
       ],
