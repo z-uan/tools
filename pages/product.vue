@@ -114,9 +114,9 @@ export default {
           .filter((e) => e?.id)
           .map((e) => ({
             id: e?.id,
-            product_name: e?.product_name,
-            product_ascii: e?.product_ascii,
-            product_code: e?.product_code,
+            product_name: (e?.product_name || '').trim(),
+            product_ascii: (e?.product_ascii || '').trim(),
+            product_code: (e?.product_code || '').trim(),
             mass_in: [null, '', undefined].includes(e?.mass_in)
               ? null
               : Number(e?.mass_in),

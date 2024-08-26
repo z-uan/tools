@@ -36,12 +36,10 @@ export default {
           },
         },
         {
-          label: 'Settings',
-          icon: 'pi pi-fw pi-cog',
+          label: 'Logout',
+          icon: 'pi pi-fw pi-sign-out',
           command: () => {
-            if (!this.$route.fullPath.includes('settings')) {
-              this.$router.push('/settings')
-            }
+            this.$store.dispatch('onLogout')
           },
         },
       ],

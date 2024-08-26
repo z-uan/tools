@@ -111,4 +111,16 @@ export const actions = {
       })
     return result
   },
+
+  async updateAccount(_, payload) {
+    const result = await this.$axios
+      .post(`${readURL('account')}/account/api/tool_account`, payload)
+      .then(() => {
+        return { isOK: true }
+      })
+      .catch(() => {
+        return { isOK: false }
+      })
+    return result
+  },
 }

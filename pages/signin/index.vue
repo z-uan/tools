@@ -1,10 +1,25 @@
 <script>
+import Dropdown from 'primevue/dropdown'
+
 export default {
   name: 'SignIn',
+  components: { Dropdown },
   layout: 'empty',
   data: () => ({
     username: '',
     password: '',
+    selectedMode: null,
+    modes: [
+      {
+        mode: 'test',
+      },
+      {
+        mode: 'staging',
+      },
+      {
+        mode: 'prod',
+      },
+    ],
   }),
   methods: {
     async onLogin() {
@@ -28,6 +43,13 @@ export default {
           detail: 'Tài khoản hoặc mật khẩu không đúng',
           life: 3000,
         })
+      }
+    },
+    onSelectMode() {
+      localStorage.removeItem('mode')
+
+      if (this.selectedMode?.mode) {
+        localStorage.setItem('mode', this.selectedMode?.mode)
       }
     },
   },
@@ -92,6 +114,24 @@ export default {
                 <div class="form__input-after"></div>
                 <label class="form__label" for="email">Password</label>
               </div>
+
+              <Dropdown
+                v-model="selectedMode"
+                :options="modes"
+                option-label="mode"
+                placeholder="Mode"
+                style="
+                  position: absolute;
+                  top: 1em;
+                  right: 1em;
+                  width: 120px;
+                  background: #1f2029;
+                  color: #ffffff !important;
+                  border-color: #1f2029;
+                "
+                @input="onSelectMode"
+              />
+
               <div class="form__group">
                 <button class="form__btn" type="submit">
                   <span class="form__btn-text">sign in</span>
@@ -107,4 +147,11 @@ export default {
 
 <style scoped>
 @import './signin.css';
+
+.login .p-dropdown:not(.p-disabled).p-focus {
+  box-shadow: none;
+}
+.login .p-dropdown-panel {
+  background: #1f2029 !important;
+}
 </style>

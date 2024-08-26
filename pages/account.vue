@@ -125,6 +125,48 @@ export default {
         this.$store.commit('LOADING', false)
       }
     },
+    async onUpdateAccount(action) {
+      if (this.accountSelected !== null || this.activeSelected.length > 0) {
+        this.$store.commit('LOADING', true)
+        const payload = {
+          user_ids:
+            this.accountSelected !== null
+              ? [this.accountSelected?.id]
+              : this.activeSelected.map((e) => e?.id),
+          action,
+        }
+        const result = await this.$store.dispatch('updateAccount', payload)
+        if (result.isOK) {
+          this.$toast.add({
+            severity: 'success',
+            detail: 'Cập nhật thành công',
+            life: 3000,
+          })
+          if (action === 'active_account') {
+            this.accountFinded = this.accountFinded.map((e) => ({
+              ...e,
+              is_active: this.activeSelected.map((e) => e?.id).includes(e?.id)
+                ? true
+                : e?.is_active,
+            }))
+            this.accountFindedClone = this.accountFindedClone.map((e) => ({
+              ...e,
+              is_active: this.activeSelected.map((e) => e?.id).includes(e?.id)
+                ? true
+                : e?.is_active,
+            }))
+            this.activeSelected = []
+          }
+        } else {
+          this.$toast.add({
+            severity: 'error',
+            detail: 'Cập nhật thất bại',
+            life: 3000,
+          })
+        }
+        this.$store.commit('LOADING', false)
+      }
+    },
     onChangeSystem() {
       if (this.selectedSystem?.system_key) {
         this.onLoadAccount()
@@ -195,7 +237,11 @@ export default {
       Kết quả cho từ khóa: {{ $route.query?.q }}
     </h6>
 
-    <PButton v-if="activeSelected.length > 0" style="margin-bottom: 1em">
+    <PButton
+      v-if="activeSelected.length > 0"
+      style="margin-bottom: 1em"
+      @click="onUpdateAccount('active_account')"
+    >
       <h6>Active {{ activeSelected.length }} selected</h6>
     </PButton>
 
@@ -279,23 +325,8 @@ export default {
             <PButton
               style="width: 100%; margin-bottom: 1em"
               label="CLEAR ALL"
+              @click="onUpdateAccount('delete_token')"
             />
-            <DataTable
-              :value="accountSelected?.tokens || []"
-              :paginator="true"
-              :rows="10"
-              responsive-layout="scroll"
-              :rows-per-page-options="[10, 20, 50]"
-            >
-              <Column field="login_time" header="Login Time">
-                <template #body="slotProps">
-                  <div style="min-width: max-content">
-                    {{ formatDate(slotProps.data[slotProps.column.field]) }}
-                  </div>
-                </template>
-              </Column>
-              <Column field="token" header="Token"></Column>
-            </DataTable>
           </TabPanel>
           <TabPanel
             v-if="selectedSystem?.system_key === 'NPP'"
